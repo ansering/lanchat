@@ -1,0 +1,14 @@
+[package]
+  cjc-version = "1.0.0"
+  name = "lanchat"
+  description = "WiFi LAN chat system written in Cangjie"
+  version = "1.0.0"
+  output-type = "executable"
+  src-dir = "./src"
+
+[dependencies]
+
+# 说明：
+#   net / encoding.json / log 已从仓颉 SDK 迁移到 stdx 模块。
+#   请在 M0 阶段按所安装的 SDK 版本补全 stdx 依赖坐标，
+#   并确认 src/protocol.cj 中的导入路径（stdx.net.* / stdx.encoding.json）。
