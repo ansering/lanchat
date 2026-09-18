@@ -14,11 +14,14 @@
 
 | 迭代 | 名称 | 范围 | 依赖 |
 |---|---|---|---|
-| I0 | 最小系统 | 连接、注册/登录、单房间群聊 | — |
-| I1 | 多房间 | 创建/加入/离开、房间列表、加入/离开通知 | I0 |
-| I2 | 私聊与在线 | 私聊、`/who` 在线列表 | I1 |
+| I0 | 框架搭建 | 四文件骨架、常量、数据模型、函数签名（无实现） | — |
+| I1 | 基础实现 | 编解码/分帧、连接、注册/登录、单房间群聊 | I0 |
+| I2 | 多房间与私聊 | 创建/加入/离开、房间列表、私聊、`/who` 在线列表 | I1 |
 | I3 | 健壮性 | 心跳清理、字段校验、错误码完善、限长 | I2 |
 | I4 | 测试与交付 | 单元/集成测试、README、三机联调 | I3 |
+
+> I0 仅交付框架（见 `MINIMAL_IMPLEMENTATION.md`），不含具体实现；
+> 可运行的最小闭环在 I1 完成。
 
 ### I1 多房间
 
@@ -120,21 +123,23 @@ protocol.cj ──► server.cj（注册/登录）──► client.cj（认证�
 
 | 需求 | 迭代 | 模块 | 测试 |
 |---|---|---|---|
-| FR-1 注册 | I0 | server.auth / protocol | UT-07, IT-01 |
-| FR-2 登录 | I0 | server.auth | IT-02 |
-| FR-3 房间 | I1 | server.room | IT-03 |
-| FR-4 群聊 | I0/I1 | server.broadcast | IT-04 |
+| FR-1 注册 | I1 | server.auth / protocol | UT-07, IT-01 |
+| FR-2 登录 | I1 | server.auth | IT-02 |
+| FR-3 房间 | I2 | server.room | IT-03 |
+| FR-4 群聊 | I1 | server.broadcast | IT-04 |
 | FR-5 私聊 | I2 | server.private | IT-05, IT-06 |
-| FR-6 系统通知 | I1 | server.broadcast | IT-03, IT-07 |
+| FR-6 系统通知 | I1/I2 | server.broadcast | IT-03, IT-07 |
 | FR-7 心跳清理 | I3 | server.sweeper | IT-08 |
-| FR-8 终端显示 | I0 | client | 手工 |
-| FR-9 列表/在线 | I1/I2 | server / client | IT-03, IT-05 |
-| FR-10 参数配置 | I0 | main | 手工 |
+| FR-8 终端显示 | I1 | client | 手工 |
+| FR-9 列表/在线 | I2 | server / client | IT-03, IT-05 |
+| FR-10 参数配置 | I1 | main | 手工 |
 | NFR-1 限长 | I3 | protocol.readLine | UT-04 |
-| NFR-2 密码哈希 | I0 | server.auth | UT-05, UT-06 |
-| NFR-3 写互斥 | I0 | Session.writeLock | 评审 |
+| NFR-2 密码哈希 | I1 | server.auth | UT-05, UT-06 |
+| NFR-3 写互斥 | I1 | Session.writeLock | 评审 |
 | NFR-4 失败隔离 | I3 | server.handleClient | IT-09 |
 | NFR-6 WiFi 部署 | I4 | 部署 | 三机联调 |
+
+> I0 仅提供签名与常量，不承载可验收的运行时行为，故不在本矩阵中单列。
 
 ## 7. 交付物清单
 

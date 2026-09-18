@@ -2,10 +2,12 @@ package lanchat
 
 /*
  * ============================================================================
- * main.cj —— 程序入口
+ * main.cj —— 程序入口【框架】
  * ----------------------------------------------------------------------------
+ * 仅负责参数解析与模式分派，具体行为由 Server / Client 实现。
+ *
  * 用法：
- *   lanchat server [port]              以服务端模式启动（默认端口 9000）
+ *   lanchat server [port]              以服务端模式启动（默认 9000）
  *   lanchat client <host> [port]       以客户端模式连接主机
  * ============================================================================
  */
@@ -20,8 +22,7 @@ public func main(args: Array<String>): Int64 {
 
     match (args[1]) {
         case "server" =>
-            let port = parsePort(args, 2, DEFAULT_PORT)
-            Server(port).run()
+            Server(parsePort(args, 2)).run()
             0
         case "client" =>
             if (args.size < 3) {
@@ -29,9 +30,7 @@ public func main(args: Array<String>): Int64 {
                 printUsage()
                 return 1
             }
-            let host = args[2]
-            let port = parsePort(args, 3, DEFAULT_PORT)
-            Client(host, port).run()
+            Client(args[2], parsePort(args, 3)).run()
             0
         case _ =>
             printUsage()
@@ -39,13 +38,14 @@ public func main(args: Array<String>): Int64 {
     }
 }
 
-func parsePort(args: Array<String>, index: Int64, fallback: UInt16): UInt16 {
+func parsePort(args: Array<String>, index: Int64): UInt16 {
     if (args.size <= index) {
-        return fallback
+        return DEFAULT_PORT
     }
+    /* TODO(M1): 解析失败时提示并回退默认端口 */
     match (UInt16.parse(args[index])) {
         case Some(p) => return p
-        case None => return fallback
+        case None => return DEFAULT_PORT
     }
 }
 

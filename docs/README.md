@@ -38,22 +38,30 @@ lanchat/
 
 ## 代码框架状态
 
-- 已搭建完整骨架：数据模型、消息分发、房间/私聊/心跳逻辑、客户端命令与显示。
-- 标记 `TODO(M0)` 的位置依赖实际 SDK 的 stdx API（TCP 读写、JSON 访问、哈希/随机/时间）。
-  **这些边界已集中隔离**，M0 阶段按官方示例校准即可，其余代码不受影响。
-- 当前环境未安装仓颉工具链，代码**尚未编译验证**；完成 M0 后应以 `cjpm build` 为准。
+- 当前为**纯框架（骨架）**：仅含类型、常量、函数签名与 TODO 占位，**不含具体业务实现**。
+- 未实现函数体统一 `todo("名称")`（调用即抛异常），用于标记待实现点。
+- 数据模型字段、协议常量与 `DEVELOPMENT.md` 一致。
+- 当前环境未安装仓颉工具链，代码**尚未编译验证**；M0 校准后应以 `cjpm build` 为准。
 
-### M0 校准清单
+### 待实现清单（M1）
+
+| 位置 | 待实现 |
+|---|---|
+| `protocol.cj` | `encode/decode`、`readLine/writeLine`、字段校验、消息构造 |
+| `server.cj` | `run/handleClient/dispatch`、各 `handle*`、`send/broadcast`、`cleanup/startSweeper` |
+| `client.cj` | `run/connect/authPhase`、`readerLoop/inputLoop`、`send/printLine` |
+| `main.cj` | 端口解析的健壮处理（可选） |
+
+### M0 校准点（依赖实际 stdx / std API）
 
 | 位置 | 依赖 |
 |---|---|
 | `protocol.cj` `readLine/writeLine` | `stdx.net` socket 读写 |
 | `protocol.cj` `encode/decode` 及 `put*/get*` | `stdx.encoding.json` |
-| `server.cj` `sha256Hex` | `std.crypto.digest` |
-| `server.cj` `randomSalt` | `std.random` |
-| `server.cj` `createListener` / `client.cj` `connectSocket` | `stdx.net` |
-| `protocol.cj` `nowSeconds` / `client.cj` `formatTime` | `std.time` |
-| `protocol.cj` `Console.readln`（client 使用） | `std.console` |
+| `server.cj` 哈希 / 随机 | `std.crypto.digest` / `std.random` |
+| `server.cj` 监听 / `client.cj` 连接 | `stdx.net` |
+| `protocol.cj` `nowSeconds` | `std.time` |
+| `client.cj` 输入读取 | `std.console` |
 
 ## 快速开始（M0 完成后）
 

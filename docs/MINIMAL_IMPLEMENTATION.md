@@ -1,32 +1,35 @@
-# 最小系统实现方案（Walking Skeleton）
+# 最小系统实现方案（代码框架）
 
-> 目标：用最小代价打通“客户端 → 服务端 → 广播 → 客户端”的端到端链路，
-> 验证架构与 stdx API，再在此基础上增量构建完整系统。
+> 目标：只搭建**可扩展的代码框架**——类型、常量、函数签名与模块边界，
+> 不编写具体业务实现。具体逻辑留待 M1（见 `IMPLEMENTATION_PLAN.md`）。
+>
+> 一句话：最小实现 = 骨架，不是能跑通的系统。
 
 ## 1. 目的
 
-- 在最短时间内得到**可运行、可演示**的系统骨架。
-- 尽早暴露 stdx（网络 / JSON）与 Windows 工具链的实际问题。
-- 为完整系统（见 `IMPLEMENTATION_PLAN.md`）提供稳固基线。
+- 固定工程结构与模块边界，让后续开发“往空函数里填逻辑”。
+- 固化协议契约（消息类型、错误码、字段）与并发约定。
+- 尽早暴露 stdx 与 Windows 工具链问题（但不阻塞框架搭建）。
 
-## 2. 最小范围
+## 2. 框架范围
 
-**包含**
+**包含（本阶段交付）**
 
-- 服务端监听、接受连接、每连接一个读线程
-- 客户端连接与逐行收发
-- 注册、登录（内存态、加盐 SHA-256）
-- 固定房间 `general` 的群聊广播
-- 一个可执行文件 `server` / `client` 两种模式
+- `cjpm.toml` 工程配置（含 stdx 依赖说明）
+- 四个源文件：`main.cj`、`protocol.cj`、`server.cj`、`client.cj`
+- 消息类型 / 错误码 / 限制值等**常量**
+- 数据模型（`User` / `Room` / `Session` / `Server` / `Client`）的**字段**
+- 全部关键函数的**签名**，函数体为 `TODO` 占位（返回 `todo(...)`）
+- 入口 `main` 的参数解析与模式分派（结构，非业务）
 
-**不包含（后续迭代）**
+**不包含（M1 及以后）**
 
-- 私聊、多房间、创建/离开房间
-- 在线列表 `/who`、房间列表 `/rooms`
-- 心跳与超时清理、限流
-- 错误码的完整覆盖（仅保留必要项）
+- 任何具体算法：编解码、校验、哈希、房间管理、消息路由、心跳
+- 任何 stdx API 的实际调用实现
+- 可运行、可演示的聊天功能
+- 单元测试与集成测试
 
-## 3. 最小协议子集
+## 3. 协议契约（框架已定义常量的部分）
 
 | 方向 | type | 字段 | 响应 |
 |---|---|---|---|
@@ -41,63 +44,53 @@
 
 分帧：一行一条 JSON，`\n` 结尾，单行 ≤ 64 KiB。
 
-## 4. 最小模块与函数
+## 4. 模块与签名清单
 
-| 文件 | 必要内容 |
+| 文件 | 框架内容（签名） |
 |---|---|
-| `protocol.cj` | `encode`、`decode`、`readLine`、`writeLine`、消息/错误码常量、`validUsername/Password/Text` |
-| `server.cj` | `Server.run`、`handleClient`、`handleRegister`、`handleLogin`、`handleSendRoom`、`send`、`broadcast` |
-| `client.cj` | `Client.run`、`authPhase`、`waitAuth`、`readerLoop`、`inputLoop` |
-| `main.cj` | 参数解析与服务端/客户端分派 |
+| `protocol.cj` | `todo`、`encode`、`decode`、`newMsg`、`putStr/putInt/putStrArray`、`getStr/getOptStr/getInt/getStrArray`、`readLine`、`writeLine`、`validUsername/Password/Room/Text`、`nowSeconds`、`okMsg/errMsg/systemMsg/chatMsg` |
+| `server.cj` | `User`、`Room`、`Session`、`Server`；`run`、`handleClient`、`dispatch`、各 `handle*`、`send`、`broadcast`、`cleanup`、`startSweeper` |
+| `client.cj` | `Client`；`run`、`connect`、`authPhase`、`readerLoop`、`handle`、`inputLoop`、`send`、`printLine` |
+| `main.cj` | `main(args)`、`parsePort`、`printUsage` |
+
+> 所有未实现函数体为：非 `Unit` 返回 `todo("名称")`，`Unit` 函数体为空并附 `TODO(M1)` 注释。
 
 ## 5. 实施步骤
 
 | 步骤 | 动作 | 产出 | 验证 |
 |---|---|---|---|
 | S1 | 安装工具链，跑官方 TCP + JSON 示例 | 环境可用 | 示例编译运行 |
-| S2 | 固化 `protocol.cj` 的 net/JSON API | 编解码 + 分帧 | 单元测试 UT-01~04 |
-| S3 | 服务端 accept + 逐行读取 + 回显 | 连接可用 | `nc`/客户端观察 |
-| S4 | 注册 / 登录 | 认证闭环 | 客户端登录成功 |
-| S5 | `join` 固定 `general` + 群聊广播 | 端到端聊天 | 两客户端互聊 |
-| S6 | 客户端命令与显示格式 | 可用界面 | 双终端演示 |
+| S2 | 建立四文件框架与 `cjpm.toml` | 骨架代码 | 结构完整、签名齐全 |
+| S3 | 定义协议常量与数据模型字段 | 契约固化 | 与 `DEVELOPMENT.md` §5 一致 |
+| S4 | 填充 TODO 占位，保持可编译 | 可编译骨架 | `cjpm build`（M0 校准后） |
 
-> S2 是风险最高的一步，必须先于其余步骤完成。
+> 本阶段**不做**编解码/服务端/客户端的业务实现。
 
-## 6. 最小系统验收（DoD）
+## 6. 框架验收（DoD）
 
-- [ ] `cjpm build` 通过，`cjpm test` 通过（最小单测）
-- [ ] 主机启动 `lanchat server`，日志打印监听端口
-- [ ] 两个终端 `lanchat client <host>` 可注册、登录
-- [ ] 两终端加入 `general` 后互发消息可见
-- [ ] 关闭一端，服务端日志显示断线
-- [ ] 畸形 JSON 不影响服务端存活（对应单测或手工验证）
+- [ ] 工程为单模块、单可执行文件、四个源文件
+- [ ] 协议常量、错误码、限制值与 `DEVELOPMENT.md` 一致
+- [ ] 所有关键函数**签名齐全**，函数体为占位并标注 `TODO(M1)`
+- [ ] 数据模型字段与 `DEVELOPMENT.md` §6.2 一致
+- [ ] `cjpm.toml` 含 stdx 依赖说明（见 `DEPENDENCIES.md`）
+- [ ] 不包含任何具体业务实现
 
-## 7. 演示脚本
+## 7. 边界说明
 
-```powershell
-# 主机
-cjpm run -- server
-
-# 终端 A
-cjpm run -- client 192.168.1.10
-# 注册 alice / 登录 alice
-
-# 终端 B
-cjpm run -- client 192.168.1.10
-# 注册 bob / 登录 bob
-
-# 双方发送普通文本，观察广播
-```
+框架阶段**不要求**程序能实际运行聊天；`todo(...)` 会在调用时抛出异常，
+这是刻意为之，用于标记尚未实现的功能点。M0 校准 stdx 后按 M1 逐项填充。
 
 ## 8. 与完整系统的关系
 
-最小系统保留了三层结构（协议 / 服务端 / 客户端）与并发模型（`gLock` + 每会话 `writeLock`）。
-完整系统仅在此基础上**做加法**，不改变骨架：
+框架固定了三层结构（协议 / 服务端 / 客户端）与并发模型（`gLock` + 每会话 `writeLock`）。
+完整系统仅在空函数中**填充实现**，不改变骨架：
 
-| 能力 | 增量位置 |
+| 能力 | 填充位置 |
 |---|---|
-| 私聊 | `server.handleSendPrivate` + `client` 命令 |
-| 多房间 | `server` 房间管理与 `client /join /rooms` |
+| 编解码 / 校验 / 分帧 | `protocol.cj` |
+| 注册、登录 | `server.handleRegister/handleLogin` |
+| 群聊、私聊 | `server.handleSendRoom/handleSendPrivate` |
+| 多房间 | `server.handleJoinRoom/handleLeaveRoom` |
 | 心跳清理 | `server.startSweeper` |
-| 校验与错误 | `protocol` 校验 + 错误码 |
-| 测试 | `tests/` 单元与集成 |
+| 客户端界面与命令 | `client.readerLoop/inputLoop` |
+| 测试 | `tests/` |
