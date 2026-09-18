@@ -18,6 +18,7 @@ lanchat/
 └── docs/
     ├── README.md                  # 本文件
     ├── DEVELOPMENT.md             # 开发文档（总纲）
+    ├── DEPENDENCIES.md            # 依赖库文档（std / stdx 配置）
     ├── MINIMAL_IMPLEMENTATION.md  # 最小系统实现方案
     ├── IMPLEMENTATION_PLAN.md     # 完整系统实现方案
     ├── IMPLEMENTATION_PROCESS.md  # 系统实现流程
@@ -29,6 +30,7 @@ lanchat/
 | 文档 | 内容 |
 |---|---|
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | 需求、架构、协议、数据、详细设计、安全、规范、测试、部署、风险 |
+| [DEPENDENCIES.md](./DEPENDENCIES.md) | 标准库/stdx 依赖清单、下载与 `cjpm.toml` 配置、验证与排错 |
 | [MINIMAL_IMPLEMENTATION.md](./MINIMAL_IMPLEMENTATION.md) | 端到端可运行的最小系统（Walking Skeleton） |
 | [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) | 迭代 I0–I4、模块要点、需求追踪矩阵 |
 | [IMPLEMENTATION_PROCESS.md](./IMPLEMENTATION_PROCESS.md) | P0–P5 实现流程与各阶段 Gate |

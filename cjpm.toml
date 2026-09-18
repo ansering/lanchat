@@ -1,3 +1,5 @@
+[dependencies]
+
 [package]
   cjc-version = "1.0.0"
   name = "lanchat"
@@ -5,10 +7,27 @@
   version = "1.0.0"
   output-type = "executable"
   src-dir = "./src"
+  # 若使用 stdx 静态库并涉及 crypto/net，Windows 需追加 "-lcrypt32"
+  compile-option = ""
+  link-option = ""
 
-[dependencies]
+# ============================================================================
+# stdx 依赖配置（必需）
+# ----------------------------------------------------------------------------
+# net / encoding.json / log 等已从仓颉 SDK 迁移到 stdx 扩展库，
+# 需先下载 stdx 二进制，再在此声明路径。
+#
+# 1) 下载（Windows PowerShell）：
+#    irm https://raw.gitcode.com/Cangjie/cangjie_stdx/raw/main/downloader.ps1 -OutFile "$env:TEMP\downloader.ps1"
+#    & "$env:TEMP\downloader.ps1" <版本号> -p windows-x64 -d C:\cangjie_libs
+#
+# 2) 确认 target：执行 `cjc -v`，将下方 x86_64-w64-mingw32 替换为回显中的 Target 值。
+#
+# 3) 取消下面配置的注释，并修正 path-option 为实际的 stdx 目录。
+#
+# 详见 docs/DEPENDENCIES.md
+# ============================================================================
 
-# 说明：
-#   net / encoding.json / log 已从仓颉 SDK 迁移到 stdx 模块。
-#   请在 M0 阶段按所安装的 SDK 版本补全 stdx 依赖坐标，
-#   并确认 src/protocol.cj 中的导入路径（stdx.net.* / stdx.encoding.json）。
+# [target.x86_64-w64-mingw32]
+#   [target.x86_64-w64-mingw32.bin-dependencies]
+#     path-option = ["C:\\cangjie_libs\\windows_x64_cjnative\\stdx\\dynamic\\stdx"]
