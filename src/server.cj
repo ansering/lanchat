@@ -10,7 +10,7 @@ import stdx.net.*
  * ============================================================================
  * server.cj —— 服务端模块【框架 / 无具体实现】
  * ----------------------------------------------------------------------------
- * 只定义数据结构与类/方法签名，业务逻辑留待 M1。
+ * 只定义数据结构与类/方法签名，业务逻辑留待 M2。
  *
  * 并发约定（实现时遵守）：
  *   - gLock 保护 users / sessions / rooms
@@ -35,7 +35,7 @@ public class User {
 
 public class Room {
     public let name: String
-    /* TODO(M1): members: ArrayList<String> */
+    /* TODO(M2): members: ArrayList<String> */
 
     public init(name: String) {
         this.name = name
@@ -62,7 +62,7 @@ public class Session {
 
 public class Server {
     private let port: UInt16
-    /* TODO(M1): users / sessions / rooms / gLock */
+    /* TODO(M2): users / sessions / rooms / gLock */
 
     public init(port: UInt16) {
         this.port = port
@@ -71,11 +71,11 @@ public class Server {
     /* --------------------------- 启动与接入 --------------------------- */
 
     public func run(): Unit {
-        /* TODO(M1): 创建监听、accept 循环、启动巡检线程 */
+        /* TODO(M2): 创建监听、accept 循环、启动巡检线程 */
     }
 
     private func handleClient(sock: TcpSocket): Unit {
-        /* TODO(M1): 逐行读取 → 解码 → dispatch；结束调用 cleanup */
+        /* TODO(M2): 逐行读取 → 解码 → dispatch；结束调用 cleanup */
         let sess = Session(sock)
         todo("Server.handleClient")
     }
@@ -83,85 +83,85 @@ public class Server {
     /* --------------------------- 消息分发 --------------------------- */
 
     private func dispatch(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1): 认证态检查 + 按 type 分发 */
+        /* TODO(M2): 认证态检查 + 按 type 分发 */
         todo("Server.dispatch")
     }
 
     /* --------------------------- 认证 --------------------------- */
 
     private func handleRegister(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1): 校验 → 查重 → 加盐哈希 → 存储 → ok */
+        /* TODO(M2): 校验 → 查重 → 加盐哈希 → 存储 → ok */
         todo("Server.handleRegister")
     }
 
     private func handleLogin(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1): 校验 → 比对哈希 → 建立会话 → login_ok */
+        /* TODO(M2): 校验 → 比对哈希 → 建立会话 → login_ok */
         todo("Server.handleLogin")
     }
 
     /* --------------------------- 房间 --------------------------- */
 
     private func handleListRooms(sess: Session): Unit {
-        /* TODO(M1) */
+        /* TODO(M2) */
         todo("Server.handleListRooms")
     }
 
     private func handleCreateRoom(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1) */
+        /* TODO(M2) */
         todo("Server.handleCreateRoom")
     }
 
     private func handleJoinRoom(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1): 离开旧房间 → 加入新房间 → 广播 system */
+        /* TODO(M2): 离开旧房间 → 加入新房间 → 广播 system */
         todo("Server.handleJoinRoom")
     }
 
     private func handleLeaveRoom(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1) */
+        /* TODO(M2) */
         todo("Server.handleLeaveRoom")
     }
 
     private func leaveCurrentRoom(sess: Session): Unit {
-        /* TODO(M1) */
+        /* TODO(M2) */
         todo("Server.leaveCurrentRoom")
     }
 
     private func handleWho(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1) */
+        /* TODO(M2) */
         todo("Server.handleWho")
     }
 
     /* --------------------------- 消息 --------------------------- */
 
     private func handleSendRoom(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1): 校验 → broadcast(当前房间) */
+        /* TODO(M2): 校验 → broadcast(当前房间) */
         todo("Server.handleSendRoom")
     }
 
     private func handleSendPrivate(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1): 查目标会话 → 定向发送；离线返回 1005 */
+        /* TODO(M2): 查目标会话 → 定向发送；离线返回 1005 */
         todo("Server.handleSendPrivate")
     }
 
     /* --------------------------- 发送与广播 --------------------------- */
 
     private func send(sess: Session, msg: JsonObject): Unit {
-        /* TODO(M1): synchronized(sess.writeLock) { writeLine(...) } */
+        /* TODO(M2): synchronized(sess.writeLock) { writeLine(...) } */
         todo("Server.send")
     }
 
     private func broadcast(room: String, msg: JsonObject): Unit {
-        /* TODO(M1): 锁内收集目标 → 释放锁 → 逐个 send */
+        /* TODO(M2): 锁内收集目标 → 释放锁 → 逐个 send */
         todo("Server.broadcast")
     }
 
     /* --------------------------- 清理与心跳 --------------------------- */
 
     public func cleanup(sess: Session): Unit {
-        /* TODO(M1): 移出房间 → 移除会话 → 关 socket → 广播离开 */
+        /* TODO(M2): 移出房间 → 移除会话 → 关 socket → 广播离开 */
     }
 
     private func startSweeper(): Unit {
-        /* TODO(M1): 周期检查 lastSeen，关闭超时会话 */
+        /* TODO(M2): 周期检查 lastSeen，关闭超时会话 */
     }
 }

@@ -210,7 +210,7 @@ TLS 加密、NAT 穿透、跨子网、桌面 GUI。
 |  inputLoop（主线程）   readerLoop（读线程）   outLock        |
 +---------------------------- TCP / JSON -------------------+
 |                         服务端 (server)                    |
-|  acceptLoop（主线程）   handleClient（每连接线程）  sweeper  |
+|  run/accept（主线程）  handleClient（每连接线程）  startSweeper |
 |  +-----------------------------------------------------+  |
 |  |  内存状态: users / sessions / rooms  (gLock 保护)     |  |
 |  +-----------------------------------------------------+  |
@@ -237,7 +237,7 @@ TLS 加密、NAT 穿透、跨子网、桌面 GUI。
 | 文件 | 职责 | 主要类型/函数 |
 |---|---|---|
 | `src/main.cj` | 入口与模式分派 | `main(args)` |
-| `src/protocol.cj` | 消息编解码与字段常量 | `encode`、`decode`、`MsgType` |
+| `src/protocol.cj` | 消息编解码与字段常量 | `encode`、`decode`、`MSG_*` 常量 |
 | `src/server.cj` | 服务端全部逻辑 | `Server`、`Session` |
 | `src/client.cj` | 客户端全部逻辑 | `Client` |
 
@@ -271,8 +271,13 @@ lanchat/
 │   ├── server.cj      # 服务端
 │   └── client.cj      # 客户端
 └── docs/
-    ├── README.md
-    └── DEVELOPMENT.md # 本文档
+    ├── README.md                  # 入口
+    ├── DEVELOPMENT.md             # 本文档
+    ├── DEPENDENCIES.md            # 依赖库
+    ├── MINIMAL_IMPLEMENTATION.md  # 最小实现（框架）
+    ├── IMPLEMENTATION_PLAN.md     # 完整实现方案
+    ├── IMPLEMENTATION_PROCESS.md  # 实现流程
+    └── DEVELOPMENT_TESTING.md     # 开发与测试
 ```
 
 ---
@@ -503,14 +508,18 @@ Room {
 
 | 函数 | 签名（约定） | 说明 |
 |---|---|---|
-| `encode` | `func encode(msg: JsonObject): String` | 序列化并追加 `\n` |
-| `decode` | `func decode(line: String): JsonObject` | 解析一行；失败抛异常 |
-| `msg` | `func msg(typ: String): JsonObject` | 新建含 `type` 的对象 |
-| `getStr` | `func getStr(o: JsonObject, k: String): String` | 取字符串，缺失抛异常 |
-| `getOptStr` | `func getOptStr(o: JsonObject, k: String): Option<String>` | 取可选字符串 |
-| `getInt` | `func getInt(o: JsonObject, k: String): Int64` | 取整数 |
+| `encode` | `func encode(o: JsonObject): String` | 序列化并追加 `\n` |
+| `decode` | `func decode(line: String): Option<JsonObject>` | 解析一行；失败返回 `None` |
+| `newMsg` | `func newMsg(typ: String): JsonObject` | 新建含 `type` 的对象 |
+| 写入辅助 | `putStr` / `putInt` / `putStrArray` | 向对象写入字符串、整数、字符串数组 |
+| 读取辅助 | `getStr` / `getOptStr` / `getInt` / `getStrArray` | 从对象读取字段，缺失按约定处理 |
+| `readLine` | `func readLine(sock: TcpSocket): Option<String>` | 读到 `\n`；关闭返回 `None` |
+| `writeLine` | `func writeLine(sock: TcpSocket, text: String): Bool` | 写出 `text + "\n"` |
+| 字段校验 | `validUsername` / `validPassword` / `validRoom` / `validText` | 返回 `Bool` |
+| 消息构造 | `okMsg` / `errMsg` / `systemMsg` / `chatMsg` | 返回 `JsonObject` |
+| `nowSeconds` | `func nowSeconds(): Int64` | 当前 Unix 秒 |
 
-`MsgType`：以字符串常量集中定义全部消息类型，避免散落硬编码。
+消息类型以顶层字符串常量 `MSG_*` 集中定义，错误码以 `ERR_*`、限制值以常量定义，避免散落硬编码。
 
 > 说明：JSON 具体 API 名称以实际 SDK 为准；M0 阶段以官方示例确认后固化。
 
@@ -525,24 +534,26 @@ Room {
 
 | 函数 | 说明 |
 |---|---|
-| `run()` | 创建 `TcpServerSocket` 并进入 `acceptLoop` |
-| `acceptLoop()` | 循环 `accept`，为每个连接 `spawn` `handleClient` |
+| `run()` | 创建监听、进入 accept 循环、启动巡检线程 |
 | `handleClient(sock)` | 逐行读取、解码、`dispatch`；结束调用 `cleanup` |
-| `dispatch(sess, obj)` | 按 `type` 分发到各处理函数 |
+| `dispatch(sess, msg)` | 认证态检查 + 按 `type` 分发 |
 | `handleRegister/handleLogin` | 认证相关 |
-| `handleJoin/handleLeave/handleCreate/listRooms` | 房间相关 |
-| `handleSendRoom/handleSendPrivate/handleWho` | 消息相关 |
-| `send(sess, obj)` | 加 `writeLock` 写出一行 |
-| `broadcast(room, obj)` | 收集成员 → 释放 `gLock` → 逐个 `send` |
+| `handleListRooms/handleCreateRoom/handleJoinRoom/handleLeaveRoom/leaveCurrentRoom` | 房间相关 |
+| `handleWho` | 查询房间在线成员 |
+| `handleSendRoom/handleSendPrivate` | 消息相关 |
+| `send(sess, msg)` | 持 `writeLock` 写出一行 |
+| `broadcast(room, msg)` | 锁内收集成员 → 释放 `gLock` → 逐个 `send` |
 | `cleanup(sess)` | 见 §6.6 |
-| `sweeper()` | 周期检查 `lastSeen`，关闭超时会话 |
+| `startSweeper()` | 周期检查 `lastSeen`，关闭超时会话 |
 
 **核心伪代码**
 
 ```
-func acceptLoop():
+func run():
+    listener = 创建监听(0.0.0.0, port)
+    startSweeper()
     while running:
-        sock = server.accept()
+        sock = listener.accept()
         spawn { handleClient(sock) }
 
 func handleClient(sock):
@@ -572,10 +583,10 @@ func broadcast(room, obj):
 func main(args):
     if args.size < 2: printUsage(); return
     match args[1]:
-        case "server": Server(port = args.get(2) ?? 9000).run()
-        case "client": 
-            host = args.get(2) ?? error("host required")
-            Client(host, port = args.get(3) ?? 9000).run()
+        case "server": Server(parsePort(args, 2)).run()
+        case "client":
+            if args.size < 3: 报错缺少主机; return
+            Client(args[2], parsePort(args, 3)).run()
         case _: printUsage()
 ```
 
@@ -772,6 +783,8 @@ docs(protocol): clarify error code 1005
 | UT-06 哈希校验 | 错误密码 | 校验失败 |
 | UT-07 用户名校验 | `ab`、`a b`、`a#b` | 拒绝 |
 | UT-08 房间名校验 | 空、含空格 | 拒绝 |
+| UT-09 文本校验 | 空、纯空白、超长 | 拒绝 |
+| UT-10 命令解析 | `/msg bob hello world` | 解析出目标与正文 |
 
 ### 12.3 集成测试用例
 
@@ -882,46 +895,52 @@ docs(protocol): clarify error code 1005
 
 | 阶段 | 交付物 | 验收标准 |
 |---|---|---|
-| **M0 环境** | 工具链 + stdx + 官方示例 | `cjc`/`cjpm` 可用，TCP/JSON 示例运行成功 |
-| **M1 协议 + 服务端** | `protocol.cj`、`server.cj` | 测试客户端可注册、登录、收发房间消息 |
-| **M2 客户端** | `client.cj`、`main.cj` | 两终端可群聊、私聊、切换房间 |
-| **M3 联调与打磨** | 心跳、错误处理、单测、README | 三机联调通过，`cjpm test` 通过 |
+| **M0 环境与校准** | 工具链 + stdx + 官方示例 | `cjc`/`cjpm` 可用，TCP/JSON 示例运行成功 |
+| **M1 框架搭建** | 四文件骨架：常量、数据模型、函数签名 | 结构完整、签名齐全、与协议文档一致（见 `MINIMAL_IMPLEMENTATION.md`） |
+| **M2 基础实现** | `protocol.cj`、`server.cj`、`client.cj` 核心逻辑 | 两终端可注册、登录、在 `general` 群聊 |
+| **M3 多房间与私聊** | 房间管理、私聊、在线列表 | 两终端可切换房间、私聊、`/who` |
+| **M4 健壮性与交付** | 心跳、校验、测试、README | `cjpm test` 通过，三机联调通过 |
 
 ### 14.2 任务分解（WBS）
 
-**M0 环境**
+**M0 环境与校准**
 - [ ] 安装仓颉工具链（含 VS 生成工具）
-- [ ] 配置 stdx，确认 `stdx.net.*`、`stdx.encoding.json` 路径
+- [ ] 配置 stdx，确认 `stdx.net.*`、`stdx.encoding.json` 路径（见 `DEPENDENCIES.md`）
 - [ ] 跑通官方 TCP 与 JSON 示例
 
-**M1 协议 + 服务端**
-- [ ] `protocol.cj`：`MsgType`、`encode`、`decode`、取值辅助
-- [ ] `server.cj`：监听、accept、连接线程、逐行读取
-- [ ] 注册与登录（加盐 SHA-256、校验规则）
-- [ ] 房间：创建/加入/离开、成员维护
-- [ ] 群聊广播、私聊定向、系统通知
-- [ ] 错误处理与 `error` 应答
+**M1 框架搭建**
+- [ ] 建立四文件骨架与 `cjpm.toml`
+- [ ] 定义协议常量、错误码、限制值
+- [ ] 定义数据模型字段与全部函数签名（TODO 占位）
+- [ ] 与 §5、§6 核对一致
 
-**M2 客户端**
-- [ ] `main.cj`：参数解析与模式分派
-- [ ] `client.cj`：连接、登录、读线程、`outLock`
-- [ ] 输入循环与命令解析
-- [ ] 消息格式化与打印
+**M2 基础实现**
+- [ ] `protocol.cj`：`encode`/`decode`、`readLine`/`writeLine`、字段校验
+- [ ] `server.cj`：监听、accept、逐行读取、注册/登录
+- [ ] 单房间群聊广播与系统通知
+- [ ] `client.cj`：连接、认证、读线程、输入循环与显示
+- [ ] `main.cj`：参数解析可用
 
-**M3 联调与打磨**
+**M3 多房间与私聊**
+- [ ] 房间：创建/加入/离开、房间列表
+- [ ] 私聊与在线列表 `/who`
+- [ ] 客户端命令 `/join`、`/rooms`、`/msg`
+
+**M4 健壮性与交付**
 - [ ] 心跳（客户端 ping）与超时清理
-- [ ] 超长行拒绝与限流保护
-- [ ] 单元测试（编解码、校验、哈希）
+- [ ] 字段校验完善、超长行拒绝、错误码覆盖
+- [ ] 单元测试（编解码、校验、哈希）与集成用例
 - [ ] README 与运行说明
 - [ ] 三机 WiFi 联调
 
 ### 14.3 进度
 
 - [x] 规划与文档
-- [ ] M0 环境搭建
-- [ ] M1 协议 + 服务端
-- [ ] M2 客户端
-- [ ] M3 联调与打磨
+- [ ] M0 环境与校准
+- [x] M1 框架搭建
+- [ ] M2 基础实现
+- [ ] M3 多房间与私聊
+- [ ] M4 健壮性与交付
 
 ### 14.4 完成定义（DoD）
 

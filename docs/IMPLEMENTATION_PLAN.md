@@ -1,48 +1,50 @@
 # 完整系统实现方案
 
-> 在最小系统（`MINIMAL_IMPLEMENTATION.md`）基础上，按迭代增量实现完整 v1.0。
-> 本文档给出迭代划分、模块实现要点、构建顺序与需求追踪矩阵。
+> 在代码框架（`MINIMAL_IMPLEMENTATION.md`）基础上，按里程碑增量实现完整 v1.0。
+> 本文档给出里程碑划分、模块实现要点、构建顺序与需求追踪矩阵。
 
 ## 1. 实现策略
 
-- **增量迭代**：每个迭代都保持可编译、可运行、可演示。
+- **增量推进**：M1 保持可编译；自 M2 起每个里程碑都可运行、可演示。
 - **协议先行**：新增消息类型先更新 `DEVELOPMENT.md` §5，再改 `protocol.cj`。
 - **纵向切片**：每个功能尽量贯穿“协议 → 服务端 → 客户端 → 测试”。
 - **不破坏骨架**：始终为 1 工程、1 可执行文件、4 源文件（测试另置于 `tests/`）。
+- **对齐里程碑**：阶段编号与 `DEVELOPMENT.md` §14 的 M0–M4 一致。
 
 ## 2. 迭代划分
 
-| 迭代 | 名称 | 范围 | 依赖 |
+| 里程碑 | 名称 | 范围 | 依赖 |
 |---|---|---|---|
-| I0 | 框架搭建 | 四文件骨架、常量、数据模型、函数签名（无实现） | — |
-| I1 | 基础实现 | 编解码/分帧、连接、注册/登录、单房间群聊 | I0 |
-| I2 | 多房间与私聊 | 创建/加入/离开、房间列表、私聊、`/who` 在线列表 | I1 |
-| I3 | 健壮性 | 心跳清理、字段校验、错误码完善、限长 | I2 |
-| I4 | 测试与交付 | 单元/集成测试、README、三机联调 | I3 |
+| M0 | 环境与校准 | 工具链、stdx、官方示例 | — |
+| M1 | 框架搭建 | 四文件骨架、常量、数据模型、函数签名（无实现） | M0 |
+| M2 | 基础实现 | 编解码/分帧、连接、注册/登录、单房间群聊 | M1 |
+| M3 | 多房间与私聊 | 创建/加入/离开、房间列表、私聊、`/who` 在线列表 | M2 |
+| M4 | 健壮性与交付 | 心跳、校验、错误码、单测/集成、README、三机联调 | M3 |
 
-> I0 仅交付框架（见 `MINIMAL_IMPLEMENTATION.md`），不含具体实现；
-> 可运行的最小闭环在 I1 完成。
+> M1 仅交付框架（见 `MINIMAL_IMPLEMENTATION.md`），不含具体实现；
+> 可运行的最小闭环在 M2 完成。
 
-### I1 多房间
-
-| 项 | 内容 |
-|---|---|
-| 协议 | `list_rooms`、`create_room`、`join_room`、`leave_room`、`room_list`、`system` |
-| 服务端 | `rooms` 容器、`handleListRooms/handleCreateRoom/handleJoinRoom/handleLeaveRoom`、`leaveCurrentRoom` |
-| 客户端 | 命令 `/join`、`/rooms`；维护当前房间 |
-| 不变量 | INV-2、INV-3（见 `DEVELOPMENT.md` §6.5） |
-| 验收 | IT-03；两客户端切换到同一房间后消息隔离正确 |
-
-### I2 私聊与在线
+### M2 基础实现
 
 | 项 | 内容 |
 |---|---|
-| 协议 | `send_private`、`who`、`user_list`、`message(scope=private)` |
-| 服务端 | `handleSendPrivate`（按用户名查 `sessions`，离线返回 1005）、`handleWho` |
-| 客户端 | 命令 `/msg <user> <text>`、`/who`；私聊消息 `[私聊]` 前缀 |
-| 验收 | IT-05、IT-06 |
+| 协议 | `register`、`login`、`send_room`、`ping`；`ok/error/login_ok/message/system/pong` |
+| 服务端 | `run/handleClient/dispatch`、`handleRegister`、`handleLogin`、`handleSendRoom`、`send`、`broadcast` |
+| 客户端 | 连接、认证、`readerLoop`、`inputLoop`（普通文本发送） |
+| 不变量 | INV-1、INV-2、INV-3（见 `DEVELOPMENT.md` §6.5） |
+| 验收 | IT-01、IT-02、IT-04 |
 
-### I3 健壮性
+### M3 多房间与私聊
+
+| 项 | 内容 |
+|---|---|
+| 协议 | `list_rooms`、`create_room`、`join_room`、`leave_room`、`send_private`、`who`、`room_list`、`user_list` |
+| 服务端 | `rooms` 容器、`handleListRooms/handleCreateRoom/handleJoinRoom/handleLeaveRoom`、`leaveCurrentRoom`、`handleSendPrivate`（离线返回 1005）、`handleWho` |
+| 客户端 | 命令 `/join`、`/rooms`、`/who`、`/msg <user> <text>`；维护当前房间；私聊 `[私聊]` 前缀 |
+| 不变量 | INV-2、INV-3 |
+| 验收 | IT-03、IT-05、IT-06 |
+
+### M4 健壮性与交付
 
 | 项 | 内容 |
 |---|---|
@@ -51,16 +53,8 @@
 | 限长 | 单行 > 64 KiB 关闭连接 |
 | 失败隔离 | 单连接解析/处理异常不影响进程 |
 | 并发 | 统一锁顺序 `gLock → writeLock`；广播先在锁内收集目标再释放锁发送 |
-| 验收 | IT-08、IT-09、NFR-1、NFR-4 |
-
-### I4 测试与交付
-
-| 项 | 内容 |
-|---|---|
-| 单元测试 | 编解码、校验、哈希、房间逻辑（`tests/`） |
-| 集成测试 | 以脚本客户端跑通 IT-01~09 |
-| 文档 | README、部署说明、协议与实现一致性核对 |
-| 联调 | 三台电脑同一 WiFi 实测 |
+| 测试与交付 | 单元测试、集成用例 IT-01~09、README、三机联调 |
+| 验收 | IT-07、IT-08、IT-09、NFR-1、NFR-4、NFR-6 |
 
 ## 3. 模块实现要点
 
@@ -86,7 +80,7 @@
 
 ### 3.3 client.cj
 
-- 认证阶段：菜单式注册/登录，`waitAuth` 等待结果。
+- 认证阶段：`authPhase` 菜单式注册/登录，等待认证结果。
 - 读线程：`readerLoop` 收消息并格式化打印。
 - 输入线程：`inputLoop` 解析命令或文本。
 - 同步：`writeLock` 保护发送，`outLock` 保护打印。
@@ -121,25 +115,25 @@ protocol.cj ──► server.cj（注册/登录）──► client.cj（认证�
 
 ## 6. 需求追踪矩阵
 
-| 需求 | 迭代 | 模块 | 测试 |
+| 需求 | 里程碑 | 模块 | 测试 |
 |---|---|---|---|
-| FR-1 注册 | I1 | server.auth / protocol | UT-07, IT-01 |
-| FR-2 登录 | I1 | server.auth | IT-02 |
-| FR-3 房间 | I2 | server.room | IT-03 |
-| FR-4 群聊 | I1 | server.broadcast | IT-04 |
-| FR-5 私聊 | I2 | server.private | IT-05, IT-06 |
-| FR-6 系统通知 | I1/I2 | server.broadcast | IT-03, IT-07 |
-| FR-7 心跳清理 | I3 | server.sweeper | IT-08 |
-| FR-8 终端显示 | I1 | client | 手工 |
-| FR-9 列表/在线 | I2 | server / client | IT-03, IT-05 |
-| FR-10 参数配置 | I1 | main | 手工 |
-| NFR-1 限长 | I3 | protocol.readLine | UT-04 |
-| NFR-2 密码哈希 | I1 | server.auth | UT-05, UT-06 |
-| NFR-3 写互斥 | I1 | Session.writeLock | 评审 |
-| NFR-4 失败隔离 | I3 | server.handleClient | IT-09 |
-| NFR-6 WiFi 部署 | I4 | 部署 | 三机联调 |
+| FR-1 注册 | M2 | server.auth / protocol | UT-07, IT-01 |
+| FR-2 登录 | M2 | server.auth | IT-02 |
+| FR-3 房间 | M3 | server.room | IT-03 |
+| FR-4 群聊 | M2 | server.broadcast | IT-04 |
+| FR-5 私聊 | M3 | server.private | IT-05, IT-06 |
+| FR-6 系统通知 | M2/M3 | server.broadcast | IT-03, IT-07 |
+| FR-7 心跳清理 | M4 | server.sweeper | IT-08 |
+| FR-8 终端显示 | M2 | client | 手工 |
+| FR-9 列表/在线 | M3 | server / client | IT-03, IT-05 |
+| FR-10 参数配置 | M2 | main | 手工 |
+| NFR-1 限长 | M4 | protocol.readLine | UT-04 |
+| NFR-2 密码哈希 | M2 | server.auth | UT-05, UT-06 |
+| NFR-3 写互斥 | M2 | Session.writeLock | 评审 |
+| NFR-4 失败隔离 | M4 | server.handleClient | IT-09 |
+| NFR-6 WiFi 部署 | M4 | 部署 | 三机联调 |
 
-> I0 仅提供签名与常量，不承载可验收的运行时行为，故不在本矩阵中单列。
+> M1 仅提供签名与常量，不承载可验收的运行时行为，故不在本矩阵中单列。
 
 ## 7. 交付物清单
 
@@ -156,7 +150,7 @@ protocol.cj ──► server.cj（注册/登录）──► client.cj（认证�
 
 | 风险 | 缓解 |
 |---|---|
-| stdx API 不确定 | 全部集中在 `protocol.cj` 与少量辅助函数；I0 先校准 |
+| stdx API 不确定 | 全部集中在 `protocol.cj` 与少量辅助函数；M0 先校准 |
 | 锁使用不当 | 统一锁顺序；评审清单强制检查 |
 | 持锁 I/O 导致卡顿 | `broadcast` 先收集后发送 |
 | 功能蔓延 | 严格按迭代范围，超范围记入 v2 |

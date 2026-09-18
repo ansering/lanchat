@@ -16,7 +16,7 @@
 | `std.convert` | 标准库 | 否 | 字符串/数值转换 | `main/protocol` |
 | `std.unittest` | 标准库 | 否 | 单元测试 | `tests/` |
 | `stdx.net` | stdx 扩展 | **是** | TCP Socket（`TcpServerSocket`、`TcpSocket`） | `protocol/server/client` |
-| `stdx.encoding.json` | stdx 扩展 | **是** | JSON 编解码 | `protocol` |
+| `stdx.encoding.json` | stdx 扩展 | **是** | JSON 编解码与消息对象类型 | `protocol/server/client` |
 | `stdx.log`（可选） | stdx 扩展 | **是** | 结构化日志（v1 可用 `println` 替代） | `server/client` |
 
 > 关键点：网络与 JSON 已从 SDK 迁移到 **stdx**，必须下载 stdx 二进制并在 `cjpm.toml` 中配置路径后才能编译。
@@ -109,7 +109,7 @@ Target: x86_64-w64-mingw32
 | 能力 | 导入（以实际包名为准，见 M0 校准） | 使用位置 |
 |---|---|---|
 | TCP 服务端/客户端 | `import stdx.net.*` | `protocol.cj`（`readLine/writeLine`）、`server.cj`、`client.cj` |
-| JSON | `import stdx.encoding.json.*` | `protocol.cj`（`encode/decode`、`put*/get*`） |
+| JSON | `import stdx.encoding.json.*` | `protocol.cj`（`encode/decode`、`put*/get*`）；`server.cj`/`client.cj` 引用 `JsonObject` |
 | 日志（可选） | `import stdx.log.*` | `server.cj`、`client.cj` |
 
 > stdx 中网络包还包含 `stdx.net.http`、`stdx.net.tls` 等子包；

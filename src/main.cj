@@ -42,7 +42,7 @@ func parsePort(args: Array<String>, index: Int64): UInt16 {
     if (args.size <= index) {
         return DEFAULT_PORT
     }
-    /* TODO(M1): 解析失败时提示并回退默认端口 */
+    /* TODO(M2): 解析失败时提示并回退默认端口 */
     match (UInt16.parse(args[index])) {
         case Some(p) => return p
         case None => return DEFAULT_PORT
