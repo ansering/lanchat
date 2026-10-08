@@ -1,7 +1,7 @@
 [dependencies]
 
 [package]
-  cjc-version = "1.0.0"
+  cjc-version = "1.1.3"
   name = "lanchat"
   description = "WiFi LAN chat system written in Cangjie"
   version = "1.0.0"
@@ -11,23 +11,12 @@
   compile-option = ""
   link-option = ""
 
-# ============================================================================
-# stdx 依赖配置（必需）
-# ----------------------------------------------------------------------------
-# net / encoding.json / log 等已从仓颉 SDK 迁移到 stdx 扩展库，
-# 需先下载 stdx 二进制，再在此声明路径。
-#
-# 1) 下载（Windows PowerShell）：
-#    irm https://raw.gitcode.com/Cangjie/cangjie_stdx/raw/main/downloader.ps1 -OutFile "$env:TEMP\downloader.ps1"
-#    & "$env:TEMP\downloader.ps1" <版本号> -p windows-x64 -d C:\cangjie_libs
-#
-# 2) 确认 target：执行 `cjc -v`，将下方 x86_64-w64-mingw32 替换为回显中的 Target 值。
-#
-# 3) 取消下面配置的注释，并修正 path-option 为实际的 stdx 目录。
-#
-# 详见 docs/DEPENDENCIES.md
-# ============================================================================
+# 使用与 cjc 1.1.3 匹配的 stdx 1.1.3.1 动态库；local-libs/ 不提交 Git。
+# Linux 可在 local-libs/stdx 建立指向实际 dynamic/stdx 的链接。
+[target.x86_64-unknown-linux-gnu.bin-dependencies]
+  path-option = ["./local-libs/stdx"]
 
-# [target.x86_64-w64-mingw32]
-#   [target.x86_64-w64-mingw32.bin-dependencies]
-#     path-option = ["C:\\cangjie_libs\\windows_x64_cjnative\\stdx\\dynamic\\stdx"]
+# Windows x64：官方 stdx 下载脚本解压到 local-libs/ 后使用此路径。
+# 若 cjc -v 输出的 Target 不同，需按实际 Target 修改表名。
+[target.x86_64-w64-mingw32.bin-dependencies]
+  path-option = ["./local-libs/windows_x86_64_cjnative/dynamic/stdx"]

@@ -1,78 +1,40 @@
 package lanchat
 
-import std.collection.*
+import std.net.*
 import std.sync.*
-import std.console.*
 import stdx.encoding.json.*
-import stdx.net.*
 
-/*
- * ============================================================================
- * client.cj —— 客户端模块【框架 / 无具体实现】
- * ----------------------------------------------------------------------------
- * 只定义类结构与线程模型，交互逻辑留待 M2。
- *
- * 线程模型（实现时遵守）：
- *   - 主线程：读取输入并发送
- *   - 读线程：接收服务端消息并打印
- *   - writeLock 保护发送；outLock 保护终端输出
- * ============================================================================
- */
-
+/* 主线程处理登录和输入；登录成功后读线程持续接收服务端事件。 */
 public class Client {
     private let host: String
     private let port: UInt16
-
     private let writeLock = Mutex()
     private let outLock = Mutex()
 
     private var socket: Option<TcpSocket> = None
-    private var running = true
+    private var reader: Option<LineReader> = None
+    private var running = false
     private var name = ""
-    private var room = ""
 
     public init(host: String, port: UInt16) {
         this.host = host
         this.port = port
     }
 
-    /* ------------------------------ 主流程 ------------------------------ */
+    /* connect → login → 确认 login_ok → 启动读线程 → 输入循环 → close。 */
+    public func run(): Unit { todo("Client.run") }
+    private func connect(): Unit { todo("Client.connect") }
 
-    public func run(): Unit {
-        /* TODO(M2): 连接 → 认证 → 进入默认房间 → 启动读线程 → 输入循环 */
-    }
+    /* 从终端读取已发放的账号与口令；失败时不进入输入循环。 */
+    private func authPhase(): Unit { todo("Client.authPhase") }
 
-    private func connect(): Unit {
-        /* TODO(M0/M2): 建立 TCP 连接并保存到 this.socket */
-    }
+    private func readerLoop(): Unit { todo("Client.readerLoop") }
+    private func handle(msg: JsonObject): Unit { todo("Client.handle") }
 
-    private func authPhase(): Unit {
-        /* TODO(M2): 注册/登录交互，等待认证结果 */
-    }
+    /* 普通文本发 general；仅支持 /who、/msg <用户名> <内容>、/quit。 */
+    private func inputLoop(): Unit { todo("Client.inputLoop") }
 
-    /* ------------------------------ 读线程 ------------------------------ */
-
-    private func readerLoop(): Unit {
-        /* TODO(M2): 循环读取服务端消息并调用 handle */
-    }
-
-    private func handle(msg: JsonObject): Unit {
-        /* TODO(M2): 按 type 格式化打印 message/system/room_list/user_list/error */
-    }
-
-    /* ------------------------------ 输入循环 ------------------------------ */
-
-    private func inputLoop(): Unit {
-        /* TODO(M2): 解析命令（/join /rooms /who /msg /quit）或发送房间消息 */
-    }
-
-    /* ------------------------------ 收发与输出 ------------------------------ */
-
-    private func send(msg: JsonObject): Unit {
-        /* TODO(M2): synchronized(writeLock) { writeLine(socket, encode(msg)) } */
-    }
-
-    private func printLine(text: String): Unit {
-        /* TODO(M2): synchronized(outLock) { println(text) } */
-    }
+    private func send(msg: JsonObject): Unit { todo("Client.send") }
+    private func printLine(text: String): Unit { todo("Client.printLine") }
+    private func close(): Unit { todo("Client.close") }
 }

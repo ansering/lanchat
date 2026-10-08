@@ -1,83 +1,19 @@
-# LAN Chat — 项目文档与代码框架
+# LAN Chat 文档导航
 
-**基于仓颉语言的 WiFi 局域网聊天系统**
+本目录只保留课程设计的四份文档。先确定需求，再按方案开发，每完成一阶段用验收方案记录证据。
 
-一台电脑作主机运行服务端，其余电脑作终端运行客户端，两端均使用仓颉实现。
-目标平台为 Windows 10/11 或 Windows Server，所有节点处于同一 WiFi 局域网。
-
-## 工程结构
-
-```
-lanchat/
-├── cjpm.toml                      # 工程配置
-├── src/
-│   ├── main.cj                    # 入口：server / client 模式
-│   ├── protocol.cj                # 消息定义 + 编解码/分帧/校验签名
-│   ├── server.cj                  # 数据模型 + 服务端方法签名
-│   └── client.cj                  # 类结构 + 客户端方法签名
-└── docs/
-    ├── README.md                  # 本文件
-    ├── DEVELOPMENT.md             # 开发文档（总纲）
-    ├── DEPENDENCIES.md            # 依赖库文档（std / stdx 配置）
-    ├── MINIMAL_IMPLEMENTATION.md  # 最小实现方案（代码框架）
-    ├── IMPLEMENTATION_PLAN.md     # 完整系统实现方案
-    ├── IMPLEMENTATION_PROCESS.md  # 系统实现流程
-    └── DEVELOPMENT_TESTING.md     # 开发与测试要求及方案
-```
-
-## 文档导航
-
-| 文档 | 内容 |
+| 文档 | 用途 |
 |---|---|
-| [DEVELOPMENT.md](./DEVELOPMENT.md) | 需求、架构、协议、数据、详细设计、安全、规范、测试、部署、风险 |
-| [DEPENDENCIES.md](./DEPENDENCIES.md) | 标准库/stdx 依赖清单、下载与 `cjpm.toml` 配置、验证与排错 |
-| [MINIMAL_IMPLEMENTATION.md](./MINIMAL_IMPLEMENTATION.md) | 最小实现：代码框架（骨架），不含具体实现 |
-| [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) | 里程碑 M0–M4、模块要点、需求追踪矩阵 |
-| [IMPLEMENTATION_PROCESS.md](./IMPLEMENTATION_PROCESS.md) | P0–P4 实现流程（含发布）与各阶段 Gate |
-| [DEVELOPMENT_TESTING.md](./DEVELOPMENT_TESTING.md) | 开发要求、质量门、测试用例、验收清单 |
+| [开发需求介绍](DEVELOPMENT_REQUIREMENTS.md) | 项目目标、账号与公共频道概念、必做/选做需求和交付边界 |
+| [开发方案](DEVELOPMENT_PLAN.md) | 架构、通信协议、模块职责、依赖安装、开发顺序与风险 |
+| [各阶段验收方案](STAGE_ACCEPTANCE.md) | M0–M4 的入口条件、检查步骤、通过标准和证据；M5 为选做 |
+| 本 README | 文档阅读顺序和当前状态 |
 
-## 代码框架状态
+## 当前状态
 
-- 当前为**纯框架（骨架）**：仅含类型、常量、函数签名与 TODO 占位，**不含具体业务实现**。
-- 未实现函数体统一 `todo("名称")`（调用即抛异常），用于标记待实现点。
-- 数据模型字段、协议常量与 `DEVELOPMENT.md` 一致。
-- 当前环境未安装仓颉工具链，代码**尚未编译验证**；M0 校准后应以 `cjpm build` 为准。
+- 仓库已有五个仓颉源文件；单频道状态和方法边界已整理，但大部分行为仍为 TODO，不能用于聊天。
+- 当前开发环境为 Ubuntu 26.04、仓颉 SDK 1.1.3（`x86_64-unknown-linux-gnu`）和 stdx 1.1.3.1；TCP 最小探针、`cjpm check` 和 `cjpm build` 已通过。Windows 配置步骤已写入开发方案，但尚未在 Windows 机器验证；协议测试和局域网联调也尚未完成。
+- 组员安装前请阅读 SDK 与 stdx 的配置、版本检查和常见问题，见[开发方案的环境校准章节](DEVELOPMENT_PLAN.md#4-依赖安装与环境校准m0)。
+- 阶段进度以[各阶段验收方案](STAGE_ACCEPTANCE.md)的实际记录为准；目前没有阶段可标为通过。
 
-### 待实现清单（M2）
-
-| 位置 | 待实现 |
-|---|---|
-| `protocol.cj` | `encode/decode`、`readLine/writeLine`、字段校验、消息构造 |
-| `server.cj` | `run/handleClient/dispatch`、各 `handle*`、`send/broadcast`、`cleanup/startSweeper` |
-| `client.cj` | `run/connect/authPhase`、`readerLoop/inputLoop`、`send/printLine` |
-| `main.cj` | 端口解析的健壮处理（可选） |
-
-### M0 校准点（依赖实际 stdx / std API）
-
-| 位置 | 依赖 |
-|---|---|
-| `protocol.cj` `readLine/writeLine` | `stdx.net` socket 读写 |
-| `protocol.cj` `encode/decode` 及 `put*/get*` | `stdx.encoding.json` |
-| `server.cj` 哈希 / 随机 | `std.crypto.digest` / `std.random` |
-| `server.cj` 监听 / `client.cj` 连接 | `stdx.net` |
-| `protocol.cj` `nowSeconds` | `std.time` |
-| `client.cj` 输入读取 | `std.console` |
-
-## 快速开始（M2 完成后）
-
-```powershell
-cjpm build
-cjpm run -- server                 # 主机：默认端口 9000
-cjpm run -- client 192.168.1.10    # 终端：连接主机
-```
-
-> 主机需在 Windows 防火墙放行入站 TCP 9000。
-
-## 进度
-
-- [x] 规划与文档
-- [ ] M0 环境与 API 校准
-- [x] M1 框架搭建（代码骨架）
-- [ ] M2 基础实现
-- [ ] M3 多房间与私聊
-- [ ] M4 健壮性与交付
+项目入口和源码位置见[根目录 README](../README.md)。
