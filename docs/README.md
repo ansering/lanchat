@@ -16,4 +16,4 @@
 - 组员安装前请阅读 SDK 与 stdx 的配置、版本检查和常见问题，见[开发方案的环境校准章节](DEVELOPMENT_PLAN.md#4-依赖安装与环境校准m0)。
 - 阶段进度以[各阶段验收方案](STAGE_ACCEPTANCE.md)的实际记录为准；目前没有阶段可标为通过。
 
-项目入口和源码位置见[根目录 README](../README.md)。
+项目入口和源码位置见[根目录 README](../README.md)。组员提交和审查改动的步骤见根目录[协作指南](../CONTRIBUTING.md)。
